@@ -119,7 +119,7 @@ open a machine terminal in your `Repos` folder:
 
 ```shell
 # Replace username with YOUR GitHub username.
-git clone https://github.com/username/cintel-06-continuous-intelligence
+git clone https://github.com/BethSpornitz/cintel-06-continuous-intelligence.git
 
 cd cintel-06-continuous-intelligence
 code .
