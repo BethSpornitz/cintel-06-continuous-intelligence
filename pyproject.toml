@@ -13,6 +13,7 @@ version = "0.1.0"
 dependencies = [
     # REQ.DEPS: External packages used by the project code.
     "datafun-toolkit",
+    "matplotlib>=3.10.8",
     "polars[rtcompat]",
 ]
 

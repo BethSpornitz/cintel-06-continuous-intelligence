@@ -1,0 +1,2 @@
+avg_total_wait_time,avg_patient_satisfaction,avg_nurse_patient_ratio,avg_left_without_being_seen_rate,high_wait_rate,avg_rolling_wait_time,avg_rolling_satisfaction,avg_rolling_lwbs_rate,avg_rolling_nurse_patient_ratio,max_anomaly_count,avg_anomaly_count,system_state
+81.9166,2.7716,3.2382,0.0506,0.1026,81.88631171379826,2.7730033138881502,0.050569515904288424,3.2380824703198656,3,0.4113404127429373,CRITICAL
