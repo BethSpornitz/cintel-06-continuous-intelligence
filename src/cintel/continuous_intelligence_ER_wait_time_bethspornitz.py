@@ -234,48 +234,72 @@ def main() -> None:
     plt.close()
 
     # ----------------------------------------------------
-    # VISUAL 2: Wait Time vs Patient Satisfaction
+    # VISUAL 2: Wait Time vs Satisfaction (Binned Trend)
     # ----------------------------------------------------
-    plt.figure(figsize=(10, 6))
-    plt.scatter(
-        df["Total Wait Time (min)"].to_list(),
-        df["Patient Satisfaction"].to_list(),
+    binned_df = (
+        df.with_columns((pl.col("Total Wait Time (min)") // 10 * 10).alias("wait_bin"))
+        .group_by("wait_bin")
+        .agg(pl.col("Patient Satisfaction").mean().alias("avg_satisfaction"))
+        .sort("wait_bin")
     )
-    plt.title("Wait Time vs Patient Satisfaction")
-    plt.xlabel("Wait Time (minutes)")
-    plt.ylabel("Patient Satisfaction")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        binned_df["wait_bin"].to_list(),
+        binned_df["avg_satisfaction"].to_list(),
+        marker="o",
+    )
+    plt.title("Patient Satisfaction by Wait Time (Binned)")
+    plt.xlabel("Wait Time (minutes, binned)")
+    plt.ylabel("Average Satisfaction")
     plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "wait_vs_satisfaction_bethspornitz.png", dpi=300)
+    plt.savefig(ARTIFACTS_DIR / "wait_vs_satisfaction_binned.png", dpi=300)
     plt.close()
 
     # ----------------------------------------------------
-    # VISUAL 3: Wait Time vs Left Without Being Seen
+    # VISUAL 3: Wait Time vs LWBS Rate (Binned)
     # ----------------------------------------------------
-    plt.figure(figsize=(10, 6))
-    plt.scatter(
-        df["Total Wait Time (min)"].to_list(),
-        df["left_without_being_seen_flag"].to_list(),
+    lwbs_df = (
+        df.with_columns((pl.col("Total Wait Time (min)") // 10 * 10).alias("wait_bin"))
+        .group_by("wait_bin")
+        .agg(pl.col("left_without_being_seen_flag").mean().alias("lwbs_rate"))
+        .sort("wait_bin")
     )
-    plt.title("Wait Time vs Left Without Being Seen")
-    plt.xlabel("Wait Time (minutes)")
-    plt.ylabel("Left Without Being Seen (0/1)")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        lwbs_df["wait_bin"].to_list(),
+        lwbs_df["lwbs_rate"].to_list(),
+        marker="o",
+    )
+    plt.title("Patients Leaving Without Being Seen by Wait Time")
+    plt.xlabel("Wait Time (minutes, binned)")
+    plt.ylabel("LWBS Rate")
     plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "wait_vs_lwbs_bethspornitz.png", dpi=300)
+    plt.savefig(ARTIFACTS_DIR / "wait_vs_lwbs_binned.png", dpi=300)
     plt.close()
 
     # ----------------------------------------------------
-    # VISUAL 4: Staffing vs Wait Time
+    # VISUAL 4: Staffing vs Wait Time (Binned)
     # ----------------------------------------------------
-    plt.figure(figsize=(10, 6))
-    plt.scatter(
-        df["Nurse-to-Patient Ratio"].to_list(),
-        df["Total Wait Time (min)"].to_list(),
+    staff_df = (
+        df.with_columns((pl.col("Nurse-to-Patient Ratio") // 1).alias("staff_bin"))
+        .group_by("staff_bin")
+        .agg(pl.col("Total Wait Time (min)").mean().alias("avg_wait"))
+        .sort("staff_bin")
     )
-    plt.title("Staffing vs Wait Time")
-    plt.xlabel("Nurse-to-Patient Ratio")
-    plt.ylabel("Wait Time (minutes)")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        staff_df["staff_bin"].to_list(),
+        staff_df["avg_wait"].to_list(),
+        marker="o",
+    )
+    plt.title("Average Wait Time by Staffing Level")
+    plt.xlabel("Nurse-to-Patient Ratio (binned)")
+    plt.ylabel("Average Wait Time")
     plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "staffing_vs_wait_bethspornitz.png", dpi=300)
+    plt.savefig(ARTIFACTS_DIR / "staffing_vs_wait_binned.png", dpi=300)
     plt.close()
 
     # ----------------------------------------------------
@@ -293,6 +317,31 @@ def main() -> None:
     plt.ylabel("Anomaly Count")
     plt.tight_layout()
     plt.savefig(ARTIFACTS_DIR / "anomalies_over_time_bethspornitz.png", dpi=300)
+    plt.close()
+
+    # ----------------------------------------------------
+    # VISUAL 6: Multi-Signal Trend (Wait + Satisfaction)
+    # ----------------------------------------------------
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(
+        plot_df["visit_datetime"].to_list(),
+        plot_df["rolling_avg_wait_time"].to_list(),
+        label="Wait Time",
+    )
+
+    plt.plot(
+        plot_df["visit_datetime"].to_list(),
+        plot_df["rolling_avg_satisfaction"].to_list(),
+        label="Satisfaction",
+    )
+
+    plt.title("ED System Trends Over Time")
+    plt.xlabel("Date")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(ARTIFACTS_DIR / "multi_signal_trend.png", dpi=300)
     plt.close()
 
     LOG.info("STEP 6. Wrote visualization artifacts to the artifacts folder")
