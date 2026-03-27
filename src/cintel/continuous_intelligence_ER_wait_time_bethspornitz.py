@@ -207,146 +207,77 @@ def main() -> None:
     # ----------------------------------------------------
     LOG.info("STEP 6. Creating visualization artifacts...")
 
-    plot_df = df.select(
-        ["visit_datetime", "rolling_avg_wait_time", "rolling_avg_satisfaction"]
+    # ----------------------------------------------------
+    # VISUAL 1: ED System Monitoring Dashboard
+    # ----------------------------------------------------
+    dashboard_df = df.select(
+        [
+            "visit_datetime",
+            "rolling_avg_wait_time",
+            "rolling_avg_satisfaction",
+            "anomaly_count",
+        ]
     ).drop_nulls()
 
-    # ----------------------------------------------------
-    # VISUAL 1: ED Rolling Average Wait Time
-    # ----------------------------------------------------
-    plt.figure(figsize=(12, 6))
-    plt.plot(
-        plot_df["visit_datetime"].to_list(),
-        plot_df["rolling_avg_wait_time"].to_list(),
-        label="Rolling Avg Wait Time",
+    fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+
+    # Top panel: Rolling Average Wait Time
+    axes[0].plot(
+        dashboard_df["visit_datetime"].to_list(),
+        dashboard_df["rolling_avg_wait_time"].to_list(),
     )
-    plt.axhline(
-        y=MAX_AVG_WAIT_TIME,
-        linestyle="--",
-        label="Wait Time Threshold",
+    axes[0].axhline(y=MAX_AVG_WAIT_TIME, linestyle="--")
+    axes[0].set_title("Rolling Average Wait Time")
+    axes[0].set_ylabel("Minutes")
+
+    # Middle panel: Rolling Average Patient Satisfaction
+    axes[1].plot(
+        dashboard_df["visit_datetime"].to_list(),
+        dashboard_df["rolling_avg_satisfaction"].to_list(),
     )
-    plt.title("ED Rolling Average Wait Time")
-    plt.xlabel("Visit Date")
-    plt.ylabel("Minutes")
-    plt.legend()
+    axes[1].set_title("Rolling Average Patient Satisfaction")
+    axes[1].set_ylabel("Satisfaction")
+
+    # Bottom panel: System Anomalies Over Time
+    axes[2].plot(
+        dashboard_df["visit_datetime"].to_list(),
+        dashboard_df["anomaly_count"].to_list(),
+    )
+    axes[2].set_title("System Anomalies Over Time")
+    axes[2].set_ylabel("Anomaly Count")
+    axes[2].set_xlabel("Visit Date")
+
+    plt.suptitle("ED System Monitoring Dashboard")
     plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "ed_wait_time_trend_bethspornitz.png", dpi=300)
+    plt.savefig(ARTIFACTS_DIR / "ed_dashboard_bethspornitz.png", dpi=300)
     plt.close()
 
     # ----------------------------------------------------
-    # VISUAL 2: Wait Time vs Satisfaction (Binned Trend)
+    # VISUAL 2: Average Patient Satisfaction by Wait Time
     # ----------------------------------------------------
-    binned_df = (
-        df.with_columns((pl.col("Total Wait Time (min)") // 10 * 10).alias("wait_bin"))
-        .group_by("wait_bin")
-        .agg(pl.col("Patient Satisfaction").mean().alias("avg_satisfaction"))
-        .sort("wait_bin")
+    satisfaction_bin_df = (
+        df.with_columns(
+            (pl.col("Total Wait Time (min)") // 10 * 10).alias("wait_time_bin")
+        )
+        .group_by("wait_time_bin")
+        .agg(pl.col("Patient Satisfaction").mean().alias("avg_patient_satisfaction"))
+        .sort("wait_time_bin")
     )
 
     plt.figure(figsize=(10, 6))
     plt.plot(
-        binned_df["wait_bin"].to_list(),
-        binned_df["avg_satisfaction"].to_list(),
+        satisfaction_bin_df["wait_time_bin"].to_list(),
+        satisfaction_bin_df["avg_patient_satisfaction"].to_list(),
         marker="o",
     )
-    plt.title("Patient Satisfaction by Wait Time (Binned)")
-    plt.xlabel("Wait Time (minutes, binned)")
+    plt.title("Average Patient Satisfaction by Wait Time")
+    plt.xlabel("Wait Time Bin (minutes)")
     plt.ylabel("Average Satisfaction")
     plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "wait_vs_satisfaction_binned.png", dpi=300)
-    plt.close()
-
-    # ----------------------------------------------------
-    # VISUAL 3: Wait Time vs LWBS Rate (Binned)
-    # ----------------------------------------------------
-    lwbs_df = (
-        df.with_columns((pl.col("Total Wait Time (min)") // 10 * 10).alias("wait_bin"))
-        .group_by("wait_bin")
-        .agg(pl.col("left_without_being_seen_flag").mean().alias("lwbs_rate"))
-        .sort("wait_bin")
+    plt.savefig(
+        ARTIFACTS_DIR / "wait_time_vs_satisfaction_binned_bethspornitz.png",
+        dpi=300,
     )
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(
-        lwbs_df["wait_bin"].to_list(),
-        lwbs_df["lwbs_rate"].to_list(),
-        marker="o",
-    )
-    plt.title("Patients Leaving Without Being Seen by Wait Time")
-    plt.xlabel("Wait Time (minutes, binned)")
-    plt.ylabel("LWBS Rate")
-    plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "wait_vs_lwbs_binned.png", dpi=300)
-    plt.close()
-
-    # ----------------------------------------------------
-    # VISUAL 4: Staffing vs Wait Time (Binned)
-    # ----------------------------------------------------
-    staff_df = (
-        df.with_columns((pl.col("Nurse-to-Patient Ratio") // 1).alias("staff_bin"))
-        .group_by("staff_bin")
-        .agg(pl.col("Total Wait Time (min)").mean().alias("avg_wait"))
-        .sort("staff_bin")
-    )
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(
-        staff_df["staff_bin"].to_list(),
-        staff_df["avg_wait"].to_list(),
-        marker="o",
-    )
-    plt.title("Average Wait Time by Staffing Level")
-    plt.xlabel("Nurse-to-Patient Ratio (binned)")
-    plt.ylabel("Average Wait Time")
-    plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "staffing_vs_wait_binned.png", dpi=300)
-    plt.close()
-
-    # ----------------------------------------------------
-    # VISUAL 5: System Anomalies Over Time
-    # ----------------------------------------------------
-    anomaly_plot_df = df.select(["visit_datetime", "anomaly_count"]).drop_nulls()
-
-    plt.figure(figsize=(12, 6))
-    plt.plot(
-        anomaly_plot_df["visit_datetime"].to_list(),
-        anomaly_plot_df["anomaly_count"].to_list(),
-    )
-    plt.title("System Anomalies Over Time")
-    plt.xlabel("Visit Date")
-    plt.ylabel("Anomaly Count")
-    plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "anomalies_over_time_bethspornitz.png", dpi=300)
-    plt.close()
-
-    # ----------------------------------------------------
-    # VISUAL: ED System Trends (Dual Axis)
-    # ----------------------------------------------------
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-
-    # Left axis → Wait Time
-    ax1.plot(
-        plot_df["visit_datetime"].to_list(),
-        plot_df["rolling_avg_wait_time"].to_list(),
-        label="Wait Time",
-    )
-    ax1.set_xlabel("Date")
-    ax1.set_ylabel("Wait Time (minutes)")
-
-    # Right axis → Satisfaction
-    ax2 = ax1.twinx()
-    ax2.plot(
-        plot_df["visit_datetime"].to_list(),
-        plot_df["rolling_avg_satisfaction"].to_list(),
-        linestyle="--",
-        label="Satisfaction",
-    )
-    ax2.set_ylabel("Satisfaction")
-
-    plt.title("ED System Trends: Wait Time vs Satisfaction")
-
-    fig.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "multi_signal_dual_axis.png", dpi=300)
     plt.close()
 
     LOG.info("STEP 6. Wrote visualization artifacts to the artifacts folder")
