@@ -320,28 +320,33 @@ def main() -> None:
     plt.close()
 
     # ----------------------------------------------------
-    # VISUAL 6: Multi-Signal Trend (Wait + Satisfaction)
+    # VISUAL: ED System Trends (Dual Axis)
     # ----------------------------------------------------
-    plt.figure(figsize=(12, 6))
+    fig, ax1 = plt.subplots(figsize=(12, 6))
 
-    plt.plot(
+    # Left axis → Wait Time
+    ax1.plot(
         plot_df["visit_datetime"].to_list(),
         plot_df["rolling_avg_wait_time"].to_list(),
         label="Wait Time",
     )
+    ax1.set_xlabel("Date")
+    ax1.set_ylabel("Wait Time (minutes)")
 
-    plt.plot(
+    # Right axis → Satisfaction
+    ax2 = ax1.twinx()
+    ax2.plot(
         plot_df["visit_datetime"].to_list(),
         plot_df["rolling_avg_satisfaction"].to_list(),
+        linestyle="--",
         label="Satisfaction",
     )
+    ax2.set_ylabel("Satisfaction")
 
-    plt.title("ED System Trends Over Time")
-    plt.xlabel("Date")
-    plt.ylabel("Value")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(ARTIFACTS_DIR / "multi_signal_trend.png", dpi=300)
+    plt.title("ED System Trends: Wait Time vs Satisfaction")
+
+    fig.tight_layout()
+    plt.savefig(ARTIFACTS_DIR / "multi_signal_dual_axis.png", dpi=300)
     plt.close()
 
     LOG.info("STEP 6. Wrote visualization artifacts to the artifacts folder")
