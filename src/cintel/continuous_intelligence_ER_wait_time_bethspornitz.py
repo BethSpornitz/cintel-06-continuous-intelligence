@@ -203,14 +203,17 @@ def main() -> None:
     LOG.info(f"STEP 5. Wrote summary artifact: {OUTPUT_FILE}")
 
     # ----------------------------------------------------
-    # STEP 6: SAVE VISUALIZATION ARTIFACT
+    # STEP 6: SAVE VISUALIZATION ARTIFACTS
     # ----------------------------------------------------
-    LOG.info("STEP 6. Creating visualization artifact...")
+    LOG.info("STEP 6. Creating visualization artifacts...")
 
     plot_df = df.select(
         ["visit_datetime", "rolling_avg_wait_time", "rolling_avg_satisfaction"]
     ).drop_nulls()
 
+    # ----------------------------------------------------
+    # VISUAL 1: ED Rolling Average Wait Time
+    # ----------------------------------------------------
     plt.figure(figsize=(12, 6))
     plt.plot(
         plot_df["visit_datetime"].to_list(),
@@ -227,10 +230,72 @@ def main() -> None:
     plt.ylabel("Minutes")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(PLOT_FILE, dpi=300)
+    plt.savefig(ARTIFACTS_DIR / "ed_wait_time_trend_bethspornitz.png", dpi=300)
     plt.close()
 
-    LOG.info(f"STEP 6. Wrote visualization artifact: {PLOT_FILE}")
+    # ----------------------------------------------------
+    # VISUAL 2: Wait Time vs Patient Satisfaction
+    # ----------------------------------------------------
+    plt.figure(figsize=(10, 6))
+    plt.scatter(
+        df["Total Wait Time (min)"].to_list(),
+        df["Patient Satisfaction"].to_list(),
+    )
+    plt.title("Wait Time vs Patient Satisfaction")
+    plt.xlabel("Wait Time (minutes)")
+    plt.ylabel("Patient Satisfaction")
+    plt.tight_layout()
+    plt.savefig(ARTIFACTS_DIR / "wait_vs_satisfaction_bethspornitz.png", dpi=300)
+    plt.close()
+
+    # ----------------------------------------------------
+    # VISUAL 3: Wait Time vs Left Without Being Seen
+    # ----------------------------------------------------
+    plt.figure(figsize=(10, 6))
+    plt.scatter(
+        df["Total Wait Time (min)"].to_list(),
+        df["left_without_being_seen_flag"].to_list(),
+    )
+    plt.title("Wait Time vs Left Without Being Seen")
+    plt.xlabel("Wait Time (minutes)")
+    plt.ylabel("Left Without Being Seen (0/1)")
+    plt.tight_layout()
+    plt.savefig(ARTIFACTS_DIR / "wait_vs_lwbs_bethspornitz.png", dpi=300)
+    plt.close()
+
+    # ----------------------------------------------------
+    # VISUAL 4: Staffing vs Wait Time
+    # ----------------------------------------------------
+    plt.figure(figsize=(10, 6))
+    plt.scatter(
+        df["Nurse-to-Patient Ratio"].to_list(),
+        df["Total Wait Time (min)"].to_list(),
+    )
+    plt.title("Staffing vs Wait Time")
+    plt.xlabel("Nurse-to-Patient Ratio")
+    plt.ylabel("Wait Time (minutes)")
+    plt.tight_layout()
+    plt.savefig(ARTIFACTS_DIR / "staffing_vs_wait_bethspornitz.png", dpi=300)
+    plt.close()
+
+    # ----------------------------------------------------
+    # VISUAL 5: System Anomalies Over Time
+    # ----------------------------------------------------
+    anomaly_plot_df = df.select(["visit_datetime", "anomaly_count"]).drop_nulls()
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(
+        anomaly_plot_df["visit_datetime"].to_list(),
+        anomaly_plot_df["anomaly_count"].to_list(),
+    )
+    plt.title("System Anomalies Over Time")
+    plt.xlabel("Visit Date")
+    plt.ylabel("Anomaly Count")
+    plt.tight_layout()
+    plt.savefig(ARTIFACTS_DIR / "anomalies_over_time_bethspornitz.png", dpi=300)
+    plt.close()
+
+    LOG.info("STEP 6. Wrote visualization artifacts to the artifacts folder")
 
     LOG.info("========================")
     LOG.info("Pipeline executed successfully!")
