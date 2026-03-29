@@ -207,14 +207,13 @@ def main() -> None:
     # ----------------------------------------------------
     LOG.info("STEP 6. Creating visualization artifacts...")
 
-    # ----------------------------------------------------
-    # VISUAL 1: ED System Monitoring Dashboard
-    # ----------------------------------------------------
     dashboard_df = df.select(
         [
             "visit_datetime",
             "rolling_avg_wait_time",
             "rolling_avg_satisfaction",
+            "rolling_left_without_being_seen_rate",
+            "rolling_avg_nurse_patient_ratio",
             "anomaly_count",
         ]
     ).drop_nulls()
@@ -226,66 +225,174 @@ def main() -> None:
 
     MIN_AVG_SATISFACTION = 6.5
 
-    fig, axes = plt.subplots(3, 1, figsize=(14, 11), sharex=True)
+    latest_wait = rolling_wait[-1]
+    latest_satisfaction = rolling_satisfaction[-1]
+    latest_anomalies = anomaly_count[-1]
+
+    if latest_anomalies >= 3:
+        current_status = "CRITICAL"
+    elif latest_anomalies >= 1:
+        current_status = "WARNING"
+    else:
+        current_status = "STABLE"
+
+    def get_status_color(
+        value: float, threshold: float, higher_is_bad: bool = True
+    ) -> str:
+        """Return executive dashboard color by severity."""
+        if higher_is_bad:
+            if value >= threshold * 1.15:
+                return "red"
+            if value >= threshold:
+                return "orange"
+            return "green"
+        else:
+            if value <= threshold * 0.85:
+                return "red"
+            if value <= threshold:
+                return "orange"
+            return "green"
+
+    wait_color = get_status_color(latest_wait, MAX_AVG_WAIT_TIME, higher_is_bad=True)
+    satisfaction_color = get_status_color(
+        latest_satisfaction, MIN_AVG_SATISFACTION, higher_is_bad=False
+    )
+
+    if latest_anomalies >= 3:
+        anomaly_color = "red"
+    elif latest_anomalies == 2:
+        anomaly_color = "orange"
+    elif latest_anomalies == 1:
+        anomaly_color = "gold"
+    else:
+        anomaly_color = "green"
+
+    if current_status == "CRITICAL":
+        state_color = "red"
+    elif current_status == "WARNING":
+        state_color = "orange"
+    else:
+        state_color = "green"
 
     # ----------------------------------------------------
-    # VISUAL 1A: Rolling Average Wait Time with Alert Points
+    # VISUAL 1: Executive Monitoring Dashboard
     # ----------------------------------------------------
-    axes[0].plot(
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(
+        nrows=4,
+        ncols=4,
+        height_ratios=[1.2, 2.2, 2.2, 0.8],
+        hspace=0.5,
+        wspace=0.35,
+    )
+
+    # KPI cards
+    ax_kpi1 = fig.add_subplot(gs[0, 0])
+    ax_kpi2 = fig.add_subplot(gs[0, 1])
+    ax_kpi3 = fig.add_subplot(gs[0, 2])
+    ax_kpi4 = fig.add_subplot(gs[0, 3])
+
+    # Trend charts
+    ax_wait = fig.add_subplot(gs[1, :])
+    ax_sat = fig.add_subplot(gs[2, :])
+
+    # Alert strip
+    ax_alert = fig.add_subplot(gs[3, :])
+
+    for ax in [ax_kpi1, ax_kpi2, ax_kpi3, ax_kpi4]:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+    def draw_kpi_card(
+        ax, title: str, value_text: str, subtitle: str, color: str
+    ) -> None:
+        """Draw a simple executive KPI card."""
+        ax.set_facecolor("#f5f5f5")
+        ax.text(
+            0.5, 0.78, title, ha="center", va="center", fontsize=11, fontweight="bold"
+        )
+        ax.text(
+            0.5,
+            0.48,
+            value_text,
+            ha="center",
+            va="center",
+            fontsize=22,
+            fontweight="bold",
+            color=color,
+        )
+        ax.text(0.5, 0.18, subtitle, ha="center", va="center", fontsize=10)
+
+    draw_kpi_card(
+        ax_kpi1,
+        "Rolling Wait Time",
+        f"{latest_wait:.1f} min",
+        f"Threshold: {MAX_AVG_WAIT_TIME:.0f}",
+        wait_color,
+    )
+    draw_kpi_card(
+        ax_kpi2,
+        "Rolling Satisfaction",
+        f"{latest_satisfaction:.2f}",
+        f"Threshold: {MIN_AVG_SATISFACTION:.1f}",
+        satisfaction_color,
+    )
+    draw_kpi_card(
+        ax_kpi3,
+        "Current Anomaly Level",
+        f"{int(latest_anomalies)}",
+        "Combined active signals",
+        anomaly_color,
+    )
+    draw_kpi_card(
+        ax_kpi4,
+        "System State",
+        current_status,
+        "Current overall status",
+        state_color,
+    )
+
+    # ----------------------------------------------------
+    # WAIT TIME CHART WITH SHADED ALERT PERIODS
+    # ----------------------------------------------------
+    ax_wait.plot(
         dates,
         rolling_wait,
         color="green",
         linewidth=2,
         label="Rolling Avg Wait Time",
     )
-
-    axes[0].axhline(
+    ax_wait.axhline(
         y=MAX_AVG_WAIT_TIME,
         color="black",
         linestyle="--",
         linewidth=1.5,
-        label="Wait Time Threshold",
+        label="Wait Threshold",
     )
 
-    wait_yellow = []
-    wait_orange = []
-    wait_red = []
+    above_wait = [v > MAX_AVG_WAIT_TIME for v in rolling_wait]
+    for i in range(len(dates) - 1):
+        if above_wait[i]:
+            ax_wait.axvspan(dates[i], dates[i + 1], color="red", alpha=0.18)
 
-    for d, v in zip(dates, rolling_wait, strict=False):
-        if v > MAX_AVG_WAIT_TIME * 1.20:
-            wait_red.append((d, v))
-        elif v > MAX_AVG_WAIT_TIME * 1.10:
-            wait_orange.append((d, v))
-        elif v > MAX_AVG_WAIT_TIME:
-            wait_yellow.append((d, v))
-
-    if wait_yellow:
-        wx, wy = zip(*wait_yellow, strict=False)
-        axes[0].scatter(wx, wy, color="gold", s=25, zorder=3, label="Warning")
-    if wait_orange:
-        ox, oy = zip(*wait_orange, strict=False)
-        axes[0].scatter(ox, oy, color="orange", s=30, zorder=3, label="Elevated")
-    if wait_red:
-        rx, ry = zip(*wait_red, strict=False)
-        axes[0].scatter(rx, ry, color="red", s=35, zorder=3, label="Critical")
-
-    axes[0].set_title("Rolling Average Wait Time")
-    axes[0].set_ylabel("Minutes")
-    axes[0].legend(loc="upper left")
-    axes[0].grid(alpha=0.3)
+    ax_wait.set_title("Rolling Average Wait Time with Alert Periods")
+    ax_wait.set_ylabel("Minutes")
+    ax_wait.grid(alpha=0.3)
+    ax_wait.legend(loc="upper left")
 
     # ----------------------------------------------------
-    # VISUAL 1B: Rolling Average Satisfaction with Alert Points
+    # SATISFACTION CHART WITH SHADED ALERT PERIODS
     # ----------------------------------------------------
-    axes[1].plot(
+    ax_sat.plot(
         dates,
         rolling_satisfaction,
         color="green",
         linewidth=2,
         label="Rolling Avg Satisfaction",
     )
-
-    axes[1].axhline(
+    ax_sat.axhline(
         y=MIN_AVG_SATISFACTION,
         color="black",
         linestyle="--",
@@ -293,73 +400,47 @@ def main() -> None:
         label="Satisfaction Threshold",
     )
 
-    sat_yellow = []
-    sat_orange = []
-    sat_red = []
+    below_sat = [v < MIN_AVG_SATISFACTION for v in rolling_satisfaction]
+    for i in range(len(dates) - 1):
+        if below_sat[i]:
+            ax_sat.axvspan(dates[i], dates[i + 1], color="red", alpha=0.18)
 
-    for d, v in zip(dates, rolling_satisfaction, strict=False):
-        if v < MIN_AVG_SATISFACTION * 0.80:
-            sat_red.append((d, v))
-        elif v < MIN_AVG_SATISFACTION * 0.90:
-            sat_orange.append((d, v))
-        elif v < MIN_AVG_SATISFACTION:
-            sat_yellow.append((d, v))
-
-    if sat_yellow:
-        sx, sy = zip(*sat_yellow, strict=False)
-        axes[1].scatter(sx, sy, color="gold", s=25, zorder=3, label="Warning")
-    if sat_orange:
-        sox, soy = zip(*sat_orange, strict=False)
-        axes[1].scatter(sox, soy, color="orange", s=30, zorder=3, label="Elevated")
-    if sat_red:
-        srx, sry = zip(*sat_red, strict=False)
-        axes[1].scatter(srx, sry, color="red", s=35, zorder=3, label="Critical")
-
-    axes[1].set_title("Rolling Average Patient Satisfaction")
-    axes[1].set_ylabel("Satisfaction")
-    axes[1].legend(loc="upper left")
-    axes[1].grid(alpha=0.3)
+    ax_sat.set_title("Rolling Average Patient Satisfaction with Alert Periods")
+    ax_sat.set_ylabel("Satisfaction")
+    ax_sat.grid(alpha=0.3)
+    ax_sat.legend(loc="upper left")
 
     # ----------------------------------------------------
-    # VISUAL 1C: System Anomalies Over Time with Alert Points
+    # ALERT TIMELINE STRIP
     # ----------------------------------------------------
-    axes[2].plot(
-        dates,
-        anomaly_count,
-        color="green",
-        linewidth=2,
-        label="Anomaly Count",
+    status_levels = []
+    for count in anomaly_count:
+        if count >= 3:
+            status_levels.append(3)
+        elif count == 2:
+            status_levels.append(2)
+        elif count == 1:
+            status_levels.append(1)
+        else:
+            status_levels.append(0)
+
+    ax_alert.imshow(
+        [status_levels],
+        aspect="auto",
+        interpolation="nearest",
+        extent=[0, len(status_levels), 0, 1],
+        cmap="RdYlGn_r",
     )
 
-    anom_yellow = []
-    anom_orange = []
-    anom_red = []
+    ax_alert.set_yticks([])
+    tick_positions = list(range(0, len(dates), max(1, len(dates) // 8)))
+    tick_labels = [dates[i].strftime("%Y-%m-%d") for i in tick_positions]
+    ax_alert.set_xticks(tick_positions)
+    ax_alert.set_xticklabels(tick_labels, rotation=0)
+    ax_alert.set_title("Alert Timeline: Green=Normal, Yellow=1, Orange=2, Red=3+")
+    ax_alert.set_xlabel("Visit Date")
 
-    for d, v in zip(dates, anomaly_count, strict=False):
-        if v >= 3:
-            anom_red.append((d, v))
-        elif v == 2:
-            anom_orange.append((d, v))
-        elif v == 1:
-            anom_yellow.append((d, v))
-
-    if anom_yellow:
-        ayx, ayy = zip(*anom_yellow, strict=False)
-        axes[2].scatter(ayx, ayy, color="gold", s=25, zorder=3, label="1 Anomaly")
-    if anom_orange:
-        aox, aoy = zip(*anom_orange, strict=False)
-        axes[2].scatter(aox, aoy, color="orange", s=30, zorder=3, label="2 Anomalies")
-    if anom_red:
-        arx, ary = zip(*anom_red, strict=False)
-        axes[2].scatter(arx, ary, color="red", s=35, zorder=3, label="3+ Anomalies")
-
-    axes[2].set_title("System Anomalies Over Time")
-    axes[2].set_ylabel("Anomaly Count")
-    axes[2].set_xlabel("Visit Date")
-    axes[2].legend(loc="upper left")
-    axes[2].grid(alpha=0.3)
-
-    plt.suptitle("ED System Monitoring Dashboard")
+    plt.suptitle("ED Executive Monitoring Dashboard", fontsize=16, fontweight="bold")
     plt.tight_layout()
     plt.savefig(ARTIFACTS_DIR / "ed_dashboard_bethspornitz.png", dpi=300)
     plt.close()
@@ -383,34 +464,11 @@ def main() -> None:
     plt.plot(
         wait_bins,
         avg_satisfaction,
-        color="green",
-        linewidth=2,
         marker="o",
+        linewidth=2,
+        color="green",
         label="Avg Satisfaction",
     )
-
-    bin_yellow = []
-    bin_orange = []
-    bin_red = []
-
-    for x, y in zip(wait_bins, avg_satisfaction, strict=False):
-        if y < MIN_AVG_SATISFACTION * 0.80:
-            bin_red.append((x, y))
-        elif y < MIN_AVG_SATISFACTION * 0.90:
-            bin_orange.append((x, y))
-        elif y < MIN_AVG_SATISFACTION:
-            bin_yellow.append((x, y))
-
-    if bin_yellow:
-        byx, byy = zip(*bin_yellow, strict=False)
-        plt.scatter(byx, byy, color="gold", s=25, zorder=3, label="Warning")
-    if bin_orange:
-        box, boy = zip(*bin_orange, strict=False)
-        plt.scatter(box, boy, color="orange", s=30, zorder=3, label="Elevated")
-    if bin_red:
-        brx, bry = zip(*bin_red, strict=False)
-        plt.scatter(brx, bry, color="red", s=35, zorder=3, label="Critical")
-
     plt.axhline(
         y=MIN_AVG_SATISFACTION,
         color="black",
@@ -418,12 +476,11 @@ def main() -> None:
         linewidth=1.5,
         label="Satisfaction Threshold",
     )
-
-    plt.title("Average Patient Satisfaction by Wait Time")
+    plt.title("Average Patient Satisfaction by Wait Time Bin")
     plt.xlabel("Wait Time Bin (minutes)")
     plt.ylabel("Average Satisfaction")
-    plt.legend(loc="upper right")
     plt.grid(alpha=0.3)
+    plt.legend(loc="upper right")
     plt.tight_layout()
     plt.savefig(
         ARTIFACTS_DIR / "wait_time_vs_satisfaction_binned_bethspornitz.png",
@@ -431,6 +488,7 @@ def main() -> None:
     )
     plt.close()
 
+    LOG.info("STEP 6 complete: visualization artifacts created")
     LOG.info("STEP 6 complete: visualization artifacts created")
 
     LOG.info("========================")
