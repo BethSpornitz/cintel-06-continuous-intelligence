@@ -376,7 +376,7 @@ def main() -> None:
     above_wait = [v > MAX_AVG_WAIT_TIME for v in rolling_wait]
     for i in range(len(dates) - 1):
         if above_wait[i]:
-            ax_wait.axvspan(dates[i], dates[i + 1], color="red", alpha=0.25)
+            ax_wait.axvspan(dates[i], dates[i + 1], color="red", alpha=0.30)
 
     ax_wait.set_title("Rolling Average Wait Time with Alert Periods")
     ax_wait.set_ylabel("Minutes")
@@ -413,9 +413,9 @@ def main() -> None:
 
     for i in range(len(dates) - 1):
         if below_warning_sat[i]:
-            ax_sat.axvspan(dates[i], dates[i + 1], color="yellow", alpha=0.20)
+            ax_sat.axvspan(dates[i], dates[i + 1], color="yellow", alpha=0.15)
         if below_critical_sat[i]:
-            ax_sat.axvspan(dates[i], dates[i + 1], color="red", alpha=0.20)
+            ax_sat.axvspan(dates[i], dates[i + 1], color="red", alpha=0.25)
 
     ax_sat.set_title("Rolling Average Patient Satisfaction with Alert Periods")
     ax_sat.set_ylabel("Satisfaction")
