@@ -503,6 +503,8 @@ def main() -> None:
     )
     plt.close()
 
+    dashboard_df.write_csv(ARTIFACTS_DIR / "rolling_monitoring_ed_bethspornitz.csv")
+
     LOG.info("STEP 6 complete: visualization artifacts created")
     LOG.info("STEP 6 complete: visualization artifacts created")
 
