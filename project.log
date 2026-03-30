@@ -508,3 +508,33 @@
 2026-03-30 13:49:23 | INFO | P6 | Pipeline executed successfully!
 2026-03-30 13:49:23 | INFO | P6 | ========================
 2026-03-30 13:49:23 | INFO | P6 | END main()
+2026-03-30 13:53:28 | INFO | P6 | === RUN START ===
+2026-03-30 13:53:28 | INFO | P6 | project=CINTEL
+2026-03-30 13:53:28 | INFO | P6 | repo_dir=cintel-06-continuous-intelligence
+2026-03-30 13:53:28 | INFO | P6 | python=3.14.2
+2026-03-30 13:53:28 | INFO | P6 | os=Windows 10
+2026-03-30 13:53:28 | INFO | P6 | shell=powershell
+2026-03-30 13:53:28 | INFO | P6 | cwd=.
+2026-03-30 13:53:28 | INFO | P6 | github_actions=False
+2026-03-30 13:53:28 | INFO | P6 | ========================
+2026-03-30 13:53:28 | INFO | P6 | START main()
+2026-03-30 13:53:28 | INFO | P6 | ========================
+2026-03-30 13:53:28 | INFO | P6 | ROOT_DIR = .
+2026-03-30 13:53:28 | INFO | P6 | DATA_FILE = data\er_wait_time_bethspornitz.csv
+2026-03-30 13:53:28 | INFO | P6 | OUTPUT_FILE = artifacts\ed_system_assessment_bethspornitz.csv
+2026-03-30 13:53:28 | INFO | P6 | PLOT_FILE = artifacts\ed_wait_time_trend_bethspornitz.png
+2026-03-30 13:53:28 | INFO | P6 | ARTIFACTS_DIR = artifacts
+2026-03-30 13:53:28 | INFO | P6 | STEP 1. Loaded 5000 ED visit records
+2026-03-30 13:53:28 | INFO | P6 | STEP 2. Designing monitoring signals...
+2026-03-30 13:53:28 | INFO | P6 | STEP 3. Checking for anomalies...
+2026-03-30 13:53:28 | INFO | P6 | STEP 3. Anomalous rows detected: 1723
+2026-03-30 13:53:28 | INFO | P6 | STEP 4. Determining overall system state...
+2026-03-30 13:53:28 | INFO | P6 | STEP 4. System state assessment completed
+2026-03-30 13:53:28 | INFO | P6 | STEP 5. Wrote summary artifact: C:\Repos\cintel-06-continuous-intelligence\artifacts\ed_system_assessment_bethspornitz.csv
+2026-03-30 13:53:28 | INFO | P6 | STEP 6. Creating visualization artifacts...
+2026-03-30 13:53:40 | INFO | P6 | STEP 6 complete: visualization artifacts created
+2026-03-30 13:53:40 | INFO | P6 | STEP 6 complete: visualization artifacts created
+2026-03-30 13:53:40 | INFO | P6 | ========================
+2026-03-30 13:53:40 | INFO | P6 | Pipeline executed successfully!
+2026-03-30 13:53:40 | INFO | P6 | ========================
+2026-03-30 13:53:40 | INFO | P6 | END main()

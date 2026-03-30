@@ -224,6 +224,7 @@ def main() -> None:
             "rolling_left_without_being_seen_rate",
             "rolling_avg_nurse_patient_ratio",
             "anomaly_count",
+            "system_state_row",
         ]
     ).drop_nulls()
 
