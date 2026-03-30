@@ -223,7 +223,8 @@ def main() -> None:
     rolling_satisfaction = dashboard_df["rolling_avg_satisfaction"].to_list()
     anomaly_count = dashboard_df["anomaly_count"].to_list()
 
-    MIN_AVG_SATISFACTION = 2.8
+    WARNING_SATISFACTION: Final[float] = 2.8
+    CRITICAL_SATISFACTION: Final[float] = 2.5
 
     latest_wait = rolling_wait[-1]
     latest_satisfaction = rolling_satisfaction[-1]
@@ -243,19 +244,19 @@ def main() -> None:
         if higher_is_bad:
             if value >= threshold * 1.15:
                 return "red"
-            if value >= threshold:
+            elif value >= threshold:
                 return "orange"
             return "green"
         else:
-            if value <= threshold * 0.85:
+            if value <= threshold * 0.9:
                 return "red"
-            if value <= threshold:
+            elif value <= threshold:
                 return "orange"
             return "green"
 
     wait_color = get_status_color(latest_wait, MAX_AVG_WAIT_TIME, higher_is_bad=True)
     satisfaction_color = get_status_color(
-        latest_satisfaction, MIN_AVG_SATISFACTION, higher_is_bad=False
+        latest_satisfaction, WARNING_SATISFACTION, higher_is_bad=False
     )
 
     if latest_anomalies >= 3:
@@ -336,7 +337,7 @@ def main() -> None:
         ax_kpi2,
         "Rolling Satisfaction",
         f"{latest_satisfaction:.2f}",
-        f"Threshold: {MIN_AVG_SATISFACTION:.1f}",
+        f"Warn: {WARNING_SATISFACTION:.1f} | Crit: {CRITICAL_SATISFACTION:.1f}",
         satisfaction_color,
     )
     draw_kpi_card(
@@ -375,7 +376,7 @@ def main() -> None:
     above_wait = [v > MAX_AVG_WAIT_TIME for v in rolling_wait]
     for i in range(len(dates) - 1):
         if above_wait[i]:
-            ax_wait.axvspan(dates[i], dates[i + 1], color="red", alpha=0.18)
+            ax_wait.axvspan(dates[i], dates[i + 1], color="red", alpha=0.25)
 
     ax_wait.set_title("Rolling Average Wait Time with Alert Periods")
     ax_wait.set_ylabel("Minutes")
@@ -393,17 +394,28 @@ def main() -> None:
         label="Rolling Avg Satisfaction",
     )
     ax_sat.axhline(
-        y=MIN_AVG_SATISFACTION,
+        y=WARNING_SATISFACTION,
         color="black",
         linestyle="--",
         linewidth=1.5,
-        label="Satisfaction Threshold",
+        label="Warning Threshold",
+    )
+    ax_sat.axhline(
+        y=CRITICAL_SATISFACTION,
+        color="red",
+        linestyle=":",
+        linewidth=1.5,
+        label="Critical Threshold",
     )
 
-    below_sat = [v < MIN_AVG_SATISFACTION for v in rolling_satisfaction]
+    below_warning_sat = [v < WARNING_SATISFACTION for v in rolling_satisfaction]
+    below_critical_sat = [v < CRITICAL_SATISFACTION for v in rolling_satisfaction]
+
     for i in range(len(dates) - 1):
-        if below_sat[i]:
-            ax_sat.axvspan(dates[i], dates[i + 1], color="red", alpha=0.18)
+        if below_warning_sat[i]:
+            ax_sat.axvspan(dates[i], dates[i + 1], color="yellow", alpha=0.20)
+        if below_critical_sat[i]:
+            ax_sat.axvspan(dates[i], dates[i + 1], color="red", alpha=0.20)
 
     ax_sat.set_title("Rolling Average Patient Satisfaction with Alert Periods")
     ax_sat.set_ylabel("Satisfaction")
@@ -439,7 +451,11 @@ def main() -> None:
     ax_alert.set_title("Alert Timeline: Green=Normal, Yellow=1, Orange=2, Red=3+")
     ax_alert.set_xlabel("Visit Date")
 
-    plt.suptitle("ED Executive Monitoring Dashboard", fontsize=16, fontweight="bold")
+    plt.suptitle(
+        "ED Performance Monitoring Dashboard – Patient Satisfaction Driving Warning State",
+        fontsize=16,
+        fontweight="bold",
+    )
     plt.tight_layout()
     plt.savefig(ARTIFACTS_DIR / "ed_dashboard_bethspornitz.png", dpi=300)
     plt.close()
@@ -469,7 +485,7 @@ def main() -> None:
         label="Avg Satisfaction",
     )
     plt.axhline(
-        y=MIN_AVG_SATISFACTION,
+        y=WARNING_SATISFACTION,
         color="black",
         linestyle="--",
         linewidth=1.5,
