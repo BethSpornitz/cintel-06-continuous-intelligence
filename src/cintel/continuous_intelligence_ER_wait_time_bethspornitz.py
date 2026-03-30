@@ -149,6 +149,15 @@ def main() -> None:
         ).alias("anomaly_count")
     )
 
+    df = df.with_columns(
+        pl.when(pl.col("anomaly_count") >= 3)
+        .then(pl.lit("CRITICAL"))
+        .when(pl.col("anomaly_count") >= 1)
+        .then(pl.lit("WARNING"))
+        .otherwise(pl.lit("STABLE"))
+        .alias("system_state_row")
+    )
+
     anomalies_df = df.filter(pl.col("anomaly_count") > 0)
     LOG.info(f"STEP 3. Anomalous rows detected: {anomalies_df.height}")
 
@@ -217,6 +226,15 @@ def main() -> None:
             "anomaly_count",
         ]
     ).drop_nulls()
+
+    dashboard_df = dashboard_df.with_columns(
+        [
+            pl.col("rolling_avg_wait_time").round(2),
+            pl.col("rolling_avg_satisfaction").round(2),
+            pl.col("rolling_left_without_being_seen_rate").round(2),
+            pl.col("rolling_avg_nurse_patient_ratio").round(2),
+        ]
+    )
 
     dates = dashboard_df["visit_datetime"].to_list()
     rolling_wait = dashboard_df["rolling_avg_wait_time"].to_list()
