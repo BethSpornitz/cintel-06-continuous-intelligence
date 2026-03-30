@@ -223,7 +223,7 @@ def main() -> None:
     rolling_satisfaction = dashboard_df["rolling_avg_satisfaction"].to_list()
     anomaly_count = dashboard_df["anomaly_count"].to_list()
 
-    MIN_AVG_SATISFACTION = 6.5
+    MIN_AVG_SATISFACTION = 2.8
 
     latest_wait = rolling_wait[-1]
     latest_satisfaction = rolling_satisfaction[-1]
@@ -416,19 +416,18 @@ def main() -> None:
     status_levels = []
     for count in anomaly_count:
         if count >= 3:
-            status_levels.append(3)
+            status_levels.append(3)  # red
         elif count == 2:
-            status_levels.append(2)
+            status_levels.append(2)  # orange
         elif count == 1:
-            status_levels.append(1)
+            status_levels.append(1)  # yellow
         else:
-            status_levels.append(0)
+            status_levels.append(0)  # green
 
     ax_alert.imshow(
         [status_levels],
         aspect="auto",
         interpolation="nearest",
-        extent=[0, len(status_levels), 0, 1],
         cmap="RdYlGn_r",
     )
 
