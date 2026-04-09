@@ -67,7 +67,7 @@ The output dataset provided a clear and structured view of system health.
 
 ### Visualization
 
-![ED System Monitoring](../artifacts/ed_wait_time_trends.png)
+![ED System Monitoring](../artifacts/ed_dashboard_bethspornitz.png)
 
 ### Interpretation
 This project demonstrates how continuous intelligence techniques can be applied to healthcare operations.
